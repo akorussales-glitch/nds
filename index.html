@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="icon" type="image/png" href="./favicon.png">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="./index.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Рассчет Цены и НДС</h1>
+
+        <div id="input_count" >
+            Количество <input class="auto-width" type="number" min="0" step="1" value="1">
+        </div>
+        <div id="input_final_price" >
+            Желаемая итоговая сумма <input class="auto-width" type="number" min="0" step="0.01" value="0">
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Кол-во, шт.</th>
+                    <th>Цена, руб.</th>
+                    <th>Сумма, руб.</th>
+                    <th>Ставка НДС, %</th>
+                    <th>Сумма НДС. руб.</th>
+                    <th>Всего с НДС</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="t-count">1</td>
+                    <td id="t-price">0</td>
+                    <td id="t-price-for-count">0</td>
+                    <td>20</td>
+                    <td id="t-total-nds">0</td>
+                    <td id="t-price_with-nds">0</td>
+                </tr>
+            </tbody>
+        </table>
+
+</body>
+</html>

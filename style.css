@@ -1,0 +1,18 @@
+
+input.auto-width {
+	field-sizing: content;
+	width: fit-content;    /* Заставит браузер сжать инпут до содержимого + стрелочки */
+	min-width: 40px;
+}
+
+table {
+    margin: 20px;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #999;
+    padding: 6px 9px;                /* убираем внутренние отступы */
+    margin: 0;                 /* margin у ячеек таблицы всё равно не работает */
+    text-align: center;
+}
