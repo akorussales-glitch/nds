@@ -53,8 +53,8 @@ function recalculate() {
 
 function setResult() {
     TABLE.count.innerText = DATA.count
-    TABLE.price.innerText = DATA.price.toFixed(2)
-    TABLE.sum.innerText = DATA.sum.toFixed(2)
-    TABLE.nds.innerText = DATA.nds.toFixed(2)
-    TABLE.total.innerText = DATA.total.toFixed(2)
+    TABLE.price.innerText = DATA.price.toFixed(2).replace('.', ',')
+    TABLE.sum.innerText = DATA.sum.toFixed(2).replace('.', ',')
+    TABLE.nds.innerText = DATA.nds.toFixed(2).replace('.', ',')
+    TABLE.total.innerText = DATA.total.toFixed(2).replace('.', ',')
 }
