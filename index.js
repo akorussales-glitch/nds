@@ -25,7 +25,7 @@ const DATA = {
 function updateCount(event) {
     let value = +event.target.value
 
-    if (isNaN(value) || !isFinite(value) || value < 1) value = 0
+    if (isNaN(value) || !isFinite(value) || value < 1) value = 1
     value = Math.ceil(value)
 
     DATA.count = value
@@ -36,7 +36,7 @@ function updatePrice(event) {
     let value = +event.target.value
 
     if (isNaN(value) || !isFinite(value) || value < 1) value = 0
-    value = +((value).toFixed(2))
+    value = Math.ceil(value)
 
     DATA.total = value
     recalculate()
