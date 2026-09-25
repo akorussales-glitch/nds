@@ -6,41 +6,67 @@
     <title>Document</title>
     <link rel="icon" type="image/png" href="./favicon.png">
     <link rel="stylesheet" href="style.css">
-    <script defer src="./index.js"></script>
+    <script defer src="./main.js"></script>
+    <script defer src="./copy.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Рассчет Цены и НДС</h1>
+    <h1>Расчет Цены и НДС</h1>
 
-        <div id="input_count" >
-            Количество <input class="auto-width" type="number" min="0" step="1" value="1">
-        </div>
-        <div id="input_final_price" >
-            Желаемая итоговая сумма <input class="auto-width" type="number" min="0" step="1" value="0">
-        </div>
+    <div id="target_sum_div" >
+        <span>Целевая сумма:</span>
+        <input id="target_sum_input" type="number" min="1" step="1" value="1000">
+    </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Кол-во, шт.</th>
-                    <th>Цена, руб.</th>
-                    <th>Сумма, руб.</th>
-                    <th>Ставка НДС, %</th>
-                    <th>Сумма НДС. руб.</th>
-                    <th>Всего с НДС</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td id="t-count">1</td>
-                    <td id="t-price">0</td>
-                    <td id="t-price-for-count">0</td>
-                    <td>20</td>
-                    <td id="t-total-nds">0</td>
-                    <td id="t-price_with-nds">0</td>
-                </tr>
-            </tbody>
-        </table>
+    <div id="round_div">
+        <span>Округление цены за 1шт. без НДС:</span>
+        <label><input type="radio" name="round" value="0.01"> 1 копейка</label>
+        <label><input type="radio" name="round" value="0.1"> 10 копеек</label>
+        <label><input type="radio" name="round" value="1" checked> рубль</label>
+    </div>
+
+    <table id="input_table">
+        <thead>
+            <tr>
+                <th>Наименование</th>
+                <th>Количество, шт.</th>
+                <th>Цена закупки (коэффициент)</th>
+                <th>Удалить позицию</th>
+            </tr>
+        </thead>
+        <tbody>
+                
+        </tbody>
+    </table>
+
+    <button id="add_line">ДОБАВИТЬ</button>
+        
+    <table id="result_table">
+        <thead>
+            <tr>
+                <th>№ п/п</th>
+                <th>Наименование товара (работ, услуг)</th>
+                <th>Кол-во, шт.</th>
+                <th>Цена, руб.</th>
+                <th>Сумма, руб.</th>
+                <th>Ставка НДС, %</th>
+                <th>Сумма НДС, руб.</th>
+                <th>Всего с НДС, руб.</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr id="total_line">
+                <td colspan="2">Итого:</td>
+                <td>х</td>
+                <td>х</td>
+                <td id="total_sum">0</td>
+                <td>х</td>
+                <td id="total_nds">0</td>
+                <td id="total_total">0</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <button id="copy_result">КОПИРОВАТЬ ТАБЛИЦУ</button>
 
 </body>
 </html>
