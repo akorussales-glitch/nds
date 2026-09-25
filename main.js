@@ -216,6 +216,13 @@ function recalculate() {
         line.nds = line.sum * NDS
         line.total = line.sum + line.nds
 
+        if (i === 0) {
+            line.total = targetSum - RESULT.total
+            line.sum   = line.total / (1 + NDS)
+            line.nds   = line.sum * NDS
+            line.price = line.sum / line.count
+        }
+
         RESULT.sum += line.sum
         RESULT.nds += line.nds
         RESULT.total += line.total
