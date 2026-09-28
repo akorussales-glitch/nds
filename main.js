@@ -15,8 +15,8 @@ function setRoundStep(event) {
     roundStep = +event.target.value
     recalculate()
 }
-function roundTo(value) {
-    return Math.round(value / roundStep) * roundStep
+function roundTo(value, rate = roundStep) {
+    return Math.round(value / rate) * rate
 }
 
 let roundStep = 1
@@ -212,16 +212,9 @@ function recalculate() {
         const line = LINES[i]
 
         line.price = roundTo(priceRate * line.rate)
-        line.sum = line.price * line.count
-        line.nds = line.sum * NDS
+        line.sum = roundTo(line.price * line.count, 0.01)
+        line.nds = roundTo(line.sum * NDS, 0.01)
         line.total = line.sum + line.nds
-
-        if (i === 0) {
-            line.total = targetSum - RESULT.total
-            line.sum   = line.total / (1 + NDS)
-            line.nds   = line.sum * NDS
-            line.price = line.sum / line.count
-        }
 
         RESULT.sum += line.sum
         RESULT.nds += line.nds
