@@ -158,7 +158,7 @@ class Line {
         this.inputCeils.rate.style.backgroundColor = "transparent"
         this.rate = +((Math.ceil(value * 100) / 100).toFixed(2))
 
-        this.inputCeils.rate.value = this.rate
+        // this.inputCeils.rate.value = this.rate // отключил, чтобы не сработал oninput при вводе "," или "."
 
         recalculate()
     }
