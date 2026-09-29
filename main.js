@@ -22,7 +22,6 @@ function roundTo(value, rate = roundStep) {
 let roundStep = 1
 
 let targetSum = 1000
-let totalRate = 0
 
 const NDS = 0.2
 
@@ -44,6 +43,7 @@ class Line {
         const index = LINES.length + 1
         this.name = 'Наименование ' + index
         this.rate = 100
+        this.isFixedRate = false
         this.count = 1
         this.price = 0
         this.sum = 0
@@ -59,10 +59,17 @@ class Line {
             rate: document.createElement('input'),
         }
 
+        this.tdRemove = document.createElement('td')
+        this.inputLine.append(this.tdRemove)
+        this.tdRemove.className = "remove-line"
+        this.tdRemove.innerText = "X"
+        this.tdRemove.onclick = this.remove.bind(this)
+
         const tdName = document.createElement('td')
         this.inputLine.append(tdName)
         tdName.append(this.inputCeils.name)
         this.inputCeils.name.type = "text"
+        this.inputCeils.name.className = "name"
         this.inputCeils.name.value = this.name
         this.inputCeils.name.oninput = this.setName.bind(this)
 
@@ -79,16 +86,16 @@ class Line {
         this.inputLine.append(tdRate)
         tdRate.append(this.inputCeils.rate)
         this.inputCeils.rate.type = "number"
-        this.inputCeils.rate.min = "1"
-        this.inputCeils.rate.step = "1"
+        this.inputCeils.rate.min = "0.01"
+        this.inputCeils.rate.step = "0.01"
         this.inputCeils.rate.value = this.rate
         this.inputCeils.rate.oninput = this.setRate.bind(this)
 
-        this.tdRemove = document.createElement('td')
-        this.inputLine.append(this.tdRemove)
-        this.tdRemove.className = "remove-line"
-        this.tdRemove.innerText = "X"
-        this.tdRemove.onclick = this.remove.bind(this)
+        this.tdFix = document.createElement('td')
+        this.inputLine.append(this.tdFix)
+        this.tdFix.className = "fix-price"
+        this.tdFix.innerText = ""
+        this.tdFix.onclick = this.setFixed.bind(this)
 
         this.resultLine = document.createElement('tr')
         RESULT_TABLE.parentNode.insertBefore(this.resultLine, RESULT_TABLE)
@@ -105,6 +112,7 @@ class Line {
         this.resultCeils.index.innerText = index
         this.resultLine.append(this.resultCeils.index)
         this.resultCeils.name.innerText = this.name
+        this.resultCeils.name.className = "name"
         this.resultLine.append(this.resultCeils.name)
         this.resultCeils.count.innerText = this.count
         this.resultLine.append(this.resultCeils.count)
@@ -121,8 +129,6 @@ class Line {
         this.resultLine.append(this.resultCeils.nds)
         this.resultCeils.total.innerText = this.total
         this.resultLine.append(this.resultCeils.total)
-
-        totalRate += this.rate * this.count
     }
 
     setName(event) {
@@ -136,9 +142,7 @@ class Line {
         let value = +event.target.value
 
         if (isNaN(value) || !isFinite(value) || value < 1) value = 1
-        totalRate -= this.rate * this.count
         this.count = Math.ceil(value)
-        totalRate += this.rate * this.count
 
         this.inputCeils.count.value = this.count
 
@@ -146,14 +150,22 @@ class Line {
     }
 
     setRate(event) {
-        let value = +event.target.value
+        const value = +event.target.value
 
-        if (isNaN(value) || !isFinite(value) || value < 1) value = 1
-        totalRate -= this.rate * this.count
-        this.rate = Math.ceil(value)
-        totalRate += this.rate * this.count
+        const isInvalidData = (isNaN(value) || !isFinite(value) || value < 0.01)
+        if (isInvalidData) return this.inputCeils.rate.style.backgroundColor = "#ff7777"
+
+        this.inputCeils.rate.style.backgroundColor = "transparent"
+        this.rate = +((Math.ceil(value * 100) / 100).toFixed(2))
 
         this.inputCeils.rate.value = this.rate
+
+        recalculate()
+    }
+
+    setFixed() {
+        this.isFixedRate = !this.isFixedRate
+        this.tdFix.innerText = this.isFixedRate ? "V" : ""
 
         recalculate()
     }
@@ -161,9 +173,10 @@ class Line {
     remove() {
         if (LINES.length === 1) return
 
-        const lineIndex = LINES.indexOf(this)
+        const isConfirmedRemove = confirm('Вы хотите удалить запись ?')
+        if (!isConfirmedRemove) return
 
-        totalRate -= this.rate * this.count
+        const lineIndex = LINES.indexOf(this)
 
         this.inputCeils.name.oninput = null
         this.inputCeils.count.oninput = null
@@ -202,32 +215,65 @@ function setTargetSum(event) {
 }
 
 function recalculate() {
-    const priceRate = (targetSum / (1+NDS)) / totalRate
+    let freeTotalRate = 0   // вес свободных строк: Σ(rate × count)
+    let fixedTotal = 0      // сумма с НДС, которую заняли фиксированные строки
+
+    for (let i = LINES.length - 1; i >= 0; i--) {
+        const line = LINES[i]
+        if (line.isFixedRate) {
+            const price = line.rate                       // rate — это уже цена (целое)
+            const sum = price * line.count
+            const nds = roundTo(sum * NDS, 0.01)
+            fixedTotal += sum + nds
+        } else {
+            freeTotalRate += line.rate * line.count
+        }
+    }
+
+    // Остаток целевой суммы на свободные строки
+    const remainder = targetSum - fixedTotal
+
+    // Цена на единицу коэффициента для свободных строк
+    // Если свободных строк нет — priceRate не нужен.
+    // Если remainder < 0 — фиксации «съели» больше целевой суммы,
+    // свободным ставим цену 0 (и предупредим пользователя ниже).
+    let priceRate = 0
+    if (freeTotalRate > 0 && remainder > 0) {
+        priceRate = (remainder / (1 + NDS)) / freeTotalRate
+    }
 
     RESULT.sum = 0
     RESULT.nds = 0
     RESULT.total = 0
 
-    for(let i = LINES.length -1; i >= 0; i--) {
+    for (let i = LINES.length - 1; i >= 0; i--) {
         const line = LINES[i]
 
-        line.price = roundTo(priceRate * line.rate)
-        line.sum = roundTo(line.price * line.count, 0.01)
-        line.nds = roundTo(line.sum * NDS, 0.01)
+        if (line.isFixedRate) {
+            line.price = roundTo(line.rate)
+        } else {
+            line.price = roundTo(priceRate * line.rate)
+        }
+
+        line.sum   = roundTo(line.price * line.count, 0.01)
+        line.nds   = roundTo(line.sum * NDS, 0.01)
         line.total = line.sum + line.nds
 
-        RESULT.sum += line.sum
-        RESULT.nds += line.nds
+        RESULT.sum   += line.sum
+        RESULT.nds   += line.nds
         RESULT.total += line.total
-        
+
         line.resultCeils.count.innerText = line.count
         line.resultCeils.price.innerText = line.price.toFixed(2).replace('.', ',')
-        line.resultCeils.sum.innerText = line.sum.toFixed(2).replace('.', ',')
-        line.resultCeils.nds.innerText = line.nds.toFixed(2).replace('.', ',')
+        line.resultCeils.sum.innerText   = line.sum.toFixed(2).replace('.', ',')
+        line.resultCeils.nds.innerText   = line.nds.toFixed(2).replace('.', ',')
         line.resultCeils.total.innerText = line.total.toFixed(2).replace('.', ',')
     }
 
-    RESULT.ceils.sum.innerText = RESULT.sum.toFixed(2).replace('.', ',')
-    RESULT.ceils.nds.innerText = RESULT.nds.toFixed(2).replace('.', ',')
+    RESULT.ceils.sum.innerText   = RESULT.sum.toFixed(2).replace('.', ',')
+    RESULT.ceils.nds.innerText   = RESULT.nds.toFixed(2).replace('.', ',')
     RESULT.ceils.total.innerText = RESULT.total.toFixed(2).replace('.', ',')
+
+    const isMismatch = RESULT.total < targetSum
+    TARGET_INPUT.classList.toggle("warn", isMismatch)
 }
