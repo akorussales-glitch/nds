@@ -9,14 +9,18 @@ body {
 #target_sum_input {
     text-align: right;
 }
+#target_sum_input.warn {
+    background-color: rgb(255, 107, 107);
+}
 
-#add_line {
+#add_line, #fix-price {
     user-select: none;
     -webkit-user-select: none;  /* Safari */
     -moz-user-select: none;     /* Firefox */
     -ms-user-select: none;      /* IE/Edge */
     cursor: pointer;
 }
+#fix-price {font-weight: bold;}
 
 tr input {
 	width: max-content;
@@ -52,6 +56,11 @@ th, td {
     padding: 6px 9px;
     margin: 0;
     text-align: center;
+}
+
+td.name, input.name {
+    text-align: left;
+    padding-left: 6px;
 }
 
 #total_line td {
