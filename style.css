@@ -13,14 +13,13 @@ body {
     background-color: rgb(255, 107, 107);
 }
 
-#add_line, #fix-price {
+#add_line {
     user-select: none;
     -webkit-user-select: none;  /* Safari */
     -moz-user-select: none;     /* Firefox */
     -ms-user-select: none;      /* IE/Edge */
     cursor: pointer;
 }
-#fix-price {font-weight: bold;}
 
 tr input {
 	width: max-content;
@@ -49,6 +48,20 @@ table {
 }
 .remove-line:hover {
     background-color: #ff0000;
+}
+
+.fix-price {
+    user-select: none;
+    -webkit-user-select: none;  /* Safari */
+    -moz-user-select: none;     /* Firefox */
+    -ms-user-select: none;      /* IE/Edge */
+    cursor: pointer;
+    font-weight: bold;
+    background-color: #ffffff;
+    transition: background-color 0.3s ease;
+}
+.fix-price:hover {
+    background-color: #ffff00;
 }
 
 th, td {
