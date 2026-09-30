@@ -217,9 +217,12 @@ function setTargetSum(event) {
 function recalculate() {
     let freeTotalRate = 0   // вес свободных строк: Σ(rate × count)
     let fixedTotal = 0      // сумма с НДС, которую заняли фиксированные строки
+    let ratesSum = 0
 
     for (let i = LINES.length - 1; i >= 0; i--) {
         const line = LINES[i]
+        console.log('line.rate', line.rate)
+        ratesSum += roundTo(line.rate * line.count * (1 + NDS), 0.01)
         if (line.isFixedRate) {
             const price = line.rate                       // rate — это уже цена (целое)
             const sum = price * line.count
@@ -274,6 +277,7 @@ function recalculate() {
     RESULT.ceils.nds.innerText   = RESULT.nds.toFixed(2).replace('.', ',')
     RESULT.ceils.total.innerText = RESULT.total.toFixed(2).replace('.', ',')
 
-    const isMismatch = RESULT.total < targetSum
+    const isMismatch = RESULT.total < targetSum || ratesSum > targetSum
+    console.log('ratesSum', ratesSum)
     TARGET_INPUT.classList.toggle("warn", isMismatch)
 }
