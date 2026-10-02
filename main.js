@@ -71,7 +71,7 @@ table {
 }
 
 th, td {
-    border: 1px solid #999;
+    border: 1px solid #000;
     padding: 6px 9px;
     margin: 0;
     text-align: center;
