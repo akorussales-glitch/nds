@@ -1,87 +1,463 @@
-body {
-    margin: 20px;
+"use strict"
+
+const INPUT_TABLE = document.getElementById("input_table").querySelector("tbody")
+const RESULT_TABLE = document.getElementById("total_line")
+const TARGET_INPUT = document.getElementById("target_sum_input")
+TARGET_INPUT.oninput = setTargetSum
+const ADD_LINE = document.getElementById("add_line")
+ADD_LINE.onclick = addLine
+
+document.querySelectorAll('input[name="round"]').forEach(radio => {
+    radio.onchange = setRoundStep
+})
+
+function setRoundStep(event) {
+    roundStep = +event.target.value
+    recalculate()
+}
+function roundTo(value, rate = roundStep) {
+    return Math.round(value / rate) * rate
 }
 
-#target_sum_div {
-    font-size: 16px;
-    font-weight: bold;
-}
-#target_sum_input {
-    text-align: right;
-}
-#target_sum_input.warn {
-    background-color: rgb(255, 107, 107);
+let roundStep = 1
+
+let targetSum = 1000
+
+const NDS = 0.2
+
+const RESULT = {
+    sum: 0,
+    nds: 0,
+    total: 0,
+    ceils: {
+        sum: document.getElementById("total_sum"),
+        nds: document.getElementById("total_nds"),
+        total: document.getElementById("total_total"),
+    }
 }
 
-#add_line {
-    user-select: none;
-    -webkit-user-select: none;  /* Safari */
-    -moz-user-select: none;     /* Firefox */
-    -ms-user-select: none;      /* IE/Edge */
-    cursor: pointer;
+const LINES = []
+
+class Line {
+    constructor() {
+        const index = LINES.length + 1
+        this.name = 'Наименование ' + index
+        this.rate = 100
+        this.isFixedRate = false
+        this.count = 1
+        this.price = 0
+        this.sum = 0
+        this.nds = 0
+        this.total = 0
+
+        this.inputLine = document.createElement('tr')
+        INPUT_TABLE.append(this.inputLine)
+
+        this.inputCeils = {
+            name: document.createElement('input'),
+            count: document.createElement('input'),
+            rate: document.createElement('input'),
+        }
+
+        this.tdRemove = document.createElement('td')
+        this.inputLine.append(this.tdRemove)
+        this.tdRemove.className = "remove-line"
+        this.tdRemove.innerText = "X"
+        this.tdRemove.onclick = this.remove.bind(this)
+
+        const tdName = document.createElement('td')
+        this.inputLine.append(tdName)
+        tdName.append(this.inputCeils.name)
+        this.inputCeils.name.type = "text"
+        this.inputCeils.name.className = "name"
+        this.inputCeils.name.value = this.name
+        this.inputCeils.name.oninput = this.setName.bind(this)
+
+        const tdCount = document.createElement('td')
+        this.inputLine.append(tdCount)
+        tdCount.append(this.inputCeils.count)
+        this.inputCeils.count.type = "number"
+        this.inputCeils.count.min = "1"
+        this.inputCeils.count.step = "1"
+        this.inputCeils.count.value = this.count
+        this.inputCeils.count.oninput = this.setCount.bind(this)
+
+        const tdRate = document.createElement('td')
+        this.inputLine.append(tdRate)
+        tdRate.append(this.inputCeils.rate)
+        this.inputCeils.rate.type = "number"
+        this.inputCeils.rate.min = "0.01"
+        this.inputCeils.rate.step = "0.01"
+        this.inputCeils.rate.value = this.rate
+        this.inputCeils.rate.oninput = this.setRate.bind(this)
+
+        this.tdFix = document.createElement('td')
+        this.inputLine.append(this.tdFix)
+        this.tdFix.className = "fix-price"
+        this.tdFix.innerText = ""
+        this.tdFix.onclick = this.setFixed.bind(this)
+
+        this.resultLine = document.createElement('tr')
+        RESULT_TABLE.parentNode.insertBefore(this.resultLine, RESULT_TABLE)
+
+        this.resultCeils = {
+            index: document.createElement('td'),
+            name: document.createElement('td'),
+            count: document.createElement('td'),
+            price: document.createElement('td'),
+            sum: document.createElement('td'),
+            nds: document.createElement('td'),
+            total: document.createElement('td'),
+        }
+        this.resultCeils.index.innerText = index
+        this.resultLine.append(this.resultCeils.index)
+        this.resultCeils.name.innerText = this.name
+        this.resultCeils.name.className = "name"
+        this.resultLine.append(this.resultCeils.name)
+        this.resultCeils.count.innerText = this.count
+        this.resultLine.append(this.resultCeils.count)
+        this.resultCeils.price.innerText = this.price
+        this.resultLine.append(this.resultCeils.price)
+        this.resultCeils.sum.innerText = this.sum
+        this.resultLine.append(this.resultCeils.sum)
+
+        const resultNdsValue = document.createElement('td')
+        resultNdsValue.innerText = NDS * 100 // %
+        this.resultLine.append(resultNdsValue)
+        
+        this.resultCeils.nds.innerText = this.nds
+        this.resultLine.append(this.resultCeils.nds)
+        this.resultCeils.total.innerText = this.total
+        this.resultLine.append(this.resultCeils.total)
+    }
+
+    setName(event) {
+        this.name = event.target.value
+
+        this.inputCeils.name.value = this.name
+        this.resultCeils.name.innerText = this.name
+    }
+
+    setCount(event) {
+        let value = +event.target.value
+
+        if (isNaN(value) || !isFinite(value) || value < 1) value = 1
+        this.count = Math.ceil(value)
+
+        this.inputCeils.count.value = this.count
+
+        recalculate()
+    }
+
+    setRate(event) {
+        const value = +event.target.value
+
+        const isInvalidData = (isNaN(value) || !isFinite(value) || value < 0.01)
+        if (isInvalidData) return this.inputCeils.rate.style.backgroundColor = "#ff7777"
+
+        this.inputCeils.rate.style.backgroundColor = "transparent"
+        this.rate = +((Math.ceil(value * 100) / 100).toFixed(2))
+
+        // this.inputCeils.rate.value = this.rate // отключил, чтобы не сработал oninput при вводе "," или "."
+
+        recalculate()
+    }
+
+    setFixed() {
+        this.isFixedRate = !this.isFixedRate
+        this.tdFix.innerText = this.isFixedRate ? "V" : ""
+
+        recalculate()
+    }
+
+    remove() {
+        if (LINES.length === 1) return
+        if (!confirm('Вы хотите удалить запись ?')) return
+        this.removeWithoutConfirm()
+        recalculate()
+    }
+
+    removeWithoutConfirm() {
+        const lineIndex = LINES.indexOf(this)
+
+        this.inputCeils.name.oninput = null
+        this.inputCeils.count.oninput = null
+        this.inputCeils.rate.oninput = null
+        this.tdRemove.onclick = null
+
+        this.inputLine.remove()
+        this.inputCeils = null
+
+        this.resultLine.remove()
+        this.resultCeils = null
+
+        LINES.splice(lineIndex, 1)
+
+        for (let i = LINES.length - 1; i >= 0; i--) {
+            LINES[i].resultCeils.index.innerText = i + 1
+        }
+    }
 }
 
-tr input {
-	width: calc(100% - 12px);
-    text-align: center;
-    border: none;
-    padding: 6px 0;
+function addLine() {
+    LINES.push( new Line() )
+    recalculate()
+}
+addLine()
+
+function setTargetSum(event) {
+    let value = +event.target.value
+    if (isNaN(value) || !isFinite(value) || value < 1) return
+
+    targetSum = Math.ceil(value)
+
+    recalculate()
 }
 
-table {
-    margin: 20px 0;
-    border-collapse: collapse;
+function recalculate() {
+    let freeTotalRate = 0   // вес свободных строк: Σ(rate × count)
+    let fixedTotal = 0      // сумма с НДС, которую заняли фиксированные строки
+    let ratesSum = 0
+
+    for (let i = LINES.length - 1; i >= 0; i--) {
+        const line = LINES[i]
+        console.log('line.rate', line.rate)
+        ratesSum += roundTo(line.rate * line.count * (1 + NDS), 0.01)
+        if (line.isFixedRate) {
+            const price = line.rate                       // rate — это уже цена (целое)
+            const sum = price * line.count
+            const nds = roundTo(sum * NDS, 0.01)
+            fixedTotal += sum + nds
+        } else {
+            freeTotalRate += line.rate * line.count
+        }
+    }
+
+    // Остаток целевой суммы на свободные строки
+    const remainder = targetSum - fixedTotal
+
+    // Цена на единицу коэффициента для свободных строк
+    // Если свободных строк нет — priceRate не нужен.
+    // Если remainder < 0 — фиксации «съели» больше целевой суммы,
+    // свободным ставим цену 0 (и предупредим пользователя ниже).
+    let priceRate = 0
+    if (freeTotalRate > 0 && remainder > 0) {
+        priceRate = (remainder / (1 + NDS)) / freeTotalRate
+    }
+
+    RESULT.sum = 0
+    RESULT.nds = 0
+    RESULT.total = 0
+
+    for (let i = LINES.length - 1; i >= 0; i--) {
+        const line = LINES[i]
+
+        if (line.isFixedRate) {
+            line.price = roundTo(line.rate)
+        } else {
+            line.price = roundTo(priceRate * line.rate)
+        }
+
+        line.sum   = roundTo(line.price * line.count, 0.01)
+        line.nds   = roundTo(line.sum * NDS, 0.01)
+        line.total = line.sum + line.nds
+
+        RESULT.sum   += line.sum
+        RESULT.nds   += line.nds
+        RESULT.total += line.total
+
+        line.resultCeils.count.innerText = line.count
+        line.resultCeils.price.innerText = line.price.toFixed(2).replace('.', ',')
+        line.resultCeils.sum.innerText   = line.sum.toFixed(2).replace('.', ',')
+        line.resultCeils.nds.innerText   = line.nds.toFixed(2).replace('.', ',')
+        line.resultCeils.total.innerText = line.total.toFixed(2).replace('.', ',')
+    }
+
+    RESULT.ceils.sum.innerText   = RESULT.sum.toFixed(2).replace('.', ',')
+    RESULT.ceils.nds.innerText   = RESULT.nds.toFixed(2).replace('.', ',')
+    RESULT.ceils.total.innerText = RESULT.total.toFixed(2).replace('.', ',')
+
+    const isMismatch = RESULT.total < targetSum || ratesSum > targetSum
+    console.log('ratesSum', ratesSum)
+    TARGET_INPUT.classList.toggle("warn", isMismatch)
 }
 
-#input_table td {
-    border: 1px solid #000;
-    padding: 0;
-    margin: 0;
-    width: 160px;
-}
-#input_table td:nth-child(2) {
-    border: 1px solid #000;
-    padding: 0;
-    margin: 0;
-    width: 320px;
+// ========== JSON: ЗАГРУЗКА / СКАЧИВАНИЕ ==========
+
+const JSON_ADD_BTN = document.getElementById("json_add")
+const JSON_GET_BTN = document.getElementById("json_get")
+
+JSON_ADD_BTN.onclick = loadJson
+JSON_GET_BTN.onclick = saveJson
+
+// ---------- СКАЧИВАНИЕ ----------
+
+function collectState() {
+    return {
+        version: 1,
+        targetSum: targetSum,
+        roundStep: roundStep,
+        lines: LINES.map(line => ({
+            name: line.name,
+            rate: line.rate,
+            isFixedRate: line.isFixedRate,
+            count: line.count,
+        })),
+    }
 }
 
-.remove-line {
-    cursor: pointer;
-    background-color: #ffffff;
-    transition: background-color 0.3s ease;
-    font-weight: bold;
-}
-.remove-line:hover {
-    background-color: #ff0000;
+async function saveJson() {
+    const state = collectState()
+    const json = JSON.stringify(state, null, 2)
+
+    // File System Access API — настоящее окно "Сохранить как"
+    if (window.showSaveFilePicker) {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: "calc.json",
+                types: [{
+                    description: "JSON файл",
+                    accept: { "application/json": [".json"] },
+                }],
+            })
+
+            const writable = await handle.createWritable()
+            await writable.write(json)
+            await writable.close()
+            return
+        } catch (e) {
+            // AbortError — пользователь закрыл/отменил диалог. Ничего не делаем.
+            if (e.name === "AbortError") return
+            // Любая другая ошибка — падаем в fallback ниже
+            console.warn("showSaveFilePicker failed, falling back:", e)
+        }
+    }
+
+    // Fallback для Firefox / Safari / старых браузеров
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "calc.json"
+    document.body.append(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(url)
 }
 
-.fix-price {
-    user-select: none;
-    -webkit-user-select: none;  /* Safari */
-    -moz-user-select: none;     /* Firefox */
-    -ms-user-select: none;      /* IE/Edge */
-    cursor: pointer;
-    font-weight: bold;
-    background-color: #ffffff;
-    transition: background-color 0.3s ease;
-}
-.fix-price:hover {
-    background-color: #ffff00;
+// ---------- ЗАГРУЗКА ----------
+
+function loadJson() {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "application/json,.json"
+
+    input.onchange = () => {
+        const file = input.files && input.files[0]
+        if (!file) return
+
+        // проверка расширения
+        if (!/\.json$/i.test(file.name)) {
+            alert("Нужен файл с расширением .json")
+            return
+        }
+
+        const reader = new FileReader()
+        reader.onload = () => {
+            let data
+            try {
+                data = JSON.parse(reader.result)
+            } catch (e) {
+                alert("Не удалось разобрать JSON: " + e.message)
+                return
+            }
+
+            const error = validateState(data)
+            if (error) {
+                alert("Некорректный файл: " + error)
+                return
+            }
+
+            applyState(data)
+        }
+        reader.onerror = () => alert("Ошибка чтения файла")
+        reader.readAsText(file, "utf-8")
+    }
+
+    input.click()
 }
 
-th, td {
-    border: 1px solid #000;
-    padding: 6px 9px;
-    margin: 0;
-    text-align: center;
+// Проверяем структуру. Возвращаем строку с ошибкой или null.
+function validateState(data) {
+    if (typeof data !== "object" || data === null) return "ожидался объект"
+
+    if (typeof data.targetSum !== "number" || !isFinite(data.targetSum) || data.targetSum < 1)
+        return "поле targetSum (целевая сумма)"
+
+    if (![0.01, 0.1, 1].includes(Number(data.roundStep)))
+        return "поле roundStep (кратность округления)"
+
+    if (!Array.isArray(data.lines) || data.lines.length === 0)
+        return "поле lines (список позиций)"
+
+    for (let i = 0; i < data.lines.length; i++) {
+        const l = data.lines[i]
+        if (typeof l !== "object" || l === null) return `lines[${i}] — не объект`
+        if (typeof l.name !== "string")           return `lines[${i}].name`
+        if (typeof l.rate !== "number" || !isFinite(l.rate) || l.rate < 0.01)
+            return `lines[${i}].rate`
+        if (typeof l.count !== "number" || !isFinite(l.count) || l.count < 1)
+            return `lines[${i}].count`
+        if (typeof l.isFixedRate !== "boolean")   return `lines[${i}].isFixedRate`
+    }
+
+    return null
 }
 
-td.name, input.name {
-    text-align: left;
-    padding-left: 6px;
+// ---------- ПРИМЕНЕНИЕ СОСТОЯНИЯ ----------
+
+function applyState(data) {
+    // 1. Целевая сумма
+    targetSum = Math.ceil(data.targetSum)
+    TARGET_INPUT.value = targetSum
+
+    // 2. Кратность округления
+    roundStep = Number(data.roundStep)
+    document.querySelectorAll('input[name="round"]').forEach(radio => {
+        radio.checked = (Number(radio.value) === roundStep)
+    })
+
+    // 3. Удаляем все текущие строки, кроме одной (remove не даёт удалить последнюю)
+    while (LINES.length > 1) {
+        LINES[LINES.length - 1].removeWithoutConfirm()
+    }
+
+    // 4. Заполняем существующую первую строку и создаём остальные
+    const first = LINES[0]
+    applyLineData(first, data.lines[0])
+
+    for (let i = 1; i < data.lines.length; i++) {
+        addLine()
+        applyLineData(LINES[LINES.length - 1], data.lines[i])
+    }
+
+    // 5. Пересчёт
+    recalculate()
 }
 
-#total_line td {
-    font-weight: 900;
+function applyLineData(line, d) {
+    line.name = d.name
+    line.inputCeils.name.value = d.name
+    line.resultCeils.name.innerText = d.name
+
+    line.rate = d.rate
+    line.inputCeils.rate.value = d.rate
+
+    line.count = Math.ceil(d.count)
+    line.inputCeils.count.value = line.count
+
+    line.isFixedRate = d.isFixedRate
+    line.tdFix.innerText = line.isFixedRate ? "V" : ""
 }
