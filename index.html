@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="./favicon.png">
     <link rel="stylesheet" href="style.css">
     <script defer src="./main.js"></script>
+    <script defer src="./copy.js"></script>
 </head>
 <body>
     <h1>Расчет Цены и НДС</h1>
@@ -23,7 +24,7 @@
         <label><input type="radio" name="round" value="1" checked> рубль</label>
     </div>
 
-    <br><button id="add_line">ДОБАВИТЬ</button>
+    <br><button id="clear_all">ОЧИСТИТЬ</button> &nbsp; <button id="add_line">ДОБАВИТЬ</button>
 
     <table id="input_table">
         <thead>
@@ -65,8 +66,9 @@
             </tr>
         </tbody>
     </table>
-
-    <br><button id="json_add">ЗАГРУЗИТЬ JSON</button> &sopf; <button id="json_get">СКАЧАТЬ JSON</button>
+    <br><button id="copy_result">КОПИРОВАТЬ ТАБЛИЦУ</button>
+    <br>
+    <br><button id="json_add">ЗАГРУЗИТЬ JSON</button> &nbsp; <button id="json_get">СКАЧАТЬ JSON</button>
 
 </body>
 </html>
