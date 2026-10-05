@@ -6,6 +6,8 @@ const TARGET_INPUT = document.getElementById("target_sum_input")
 TARGET_INPUT.oninput = setTargetSum
 const ADD_LINE = document.getElementById("add_line")
 ADD_LINE.onclick = addLine
+const CLEAR_BUTTON = document.getElementById("clear_all")
+CLEAR_BUTTON.onclick = clearAll
 
 document.querySelectorAll('input[name="round"]').forEach(radio => {
     radio.onchange = setRoundStep
@@ -280,6 +282,38 @@ function recalculate() {
     const isMismatch = RESULT.total < targetSum || ratesSum > targetSum
     console.log('ratesSum', ratesSum)
     TARGET_INPUT.classList.toggle("warn", isMismatch)
+}
+
+function clearAll() {
+    if (!confirm("Очистить всё? Несохранённые данные будут потеряны.")) return
+
+    // 1. Сброс целевой суммы
+    targetSum = 1000
+    TARGET_INPUT.value = targetSum
+
+    // 2. Сброс кратности округления
+    roundStep = 1
+    document.querySelectorAll('input[name="round"]').forEach(radio => {
+        radio.checked = (Number(radio.value) === roundStep)
+    })
+
+    // 3. Удаляем все строки, кроме одной (removeWithoutConfirm не даёт удалить последнюю сам по себе,
+    //    но мы явно оставляем одну — она станет "эталонной")
+    while (LINES.length > 1) {
+        LINES[LINES.length - 1].removeWithoutConfirm()
+    }
+
+    // 4. Сбрасываем оставшуюся строку к дефолту
+    const line = LINES[0]
+    applyLineData(line, {
+        name: "Наименование 1",
+        rate: 100,
+        count: 1,
+        isFixedRate: false,
+    })
+
+    // 5. Пересчёт
+    recalculate()
 }
 
 // ========== JSON: ЗАГРУЗКА / СКАЧИВАНИЕ ==========
